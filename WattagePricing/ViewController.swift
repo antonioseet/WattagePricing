@@ -37,24 +37,39 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
 
     @IBAction func addButtonPressed(_ sender: Any) {
         
+        // TODO: check to see if negative, or zero numbers. return if something wrong, plus make label to warn user.
         // check that the fields are not blank
-        if(nameField.stringValue == "" || wattField.stringValue == ""){
+        if(nameField.stringValue.isEmpty ||
+           wattField.stringValue.isEmpty ||
+           hourField.stringValue.isEmpty ){
             return
         }
         
         // TODO: Protect from going over 24 hours. For now just default to 24, we'll find a more elegant solution later
-        if (hourField.doubleValue > 24){
+        // TODO: Add minutes and protect against 60, and a combination of >24 & >60
+        if (hourField.doubleValue > 24.0){
             hourField.doubleValue = 24.0
         }
         
         let item = ElectronicItem(name: nameField.stringValue, wattage: wattField.doubleValue, hoursUsedPerDay: hourField.doubleValue)
         manager.add(item: item)
         
+        // Clear the fields
+        nameField.stringValue = ""
+        wattField.stringValue = ""
+        hourField.stringValue = ""
+        
         UpdateView()
     }
     
     func UpdateView(){
-        resultLabel.stringValue = "Total cost per day: $\(manager.totalDailyUsageCost(pricePerKilowattHour: 0.11))"
+        
+        let dailyCost: Double = manager.totalDailyUsageCost(pricePerKilowattHour: kwhCost)
+        let dailyFormat: String = String(format: "$%.2f", dailyCost)
+        let monthlyCost: Double = manager.totalmonthlyUsageCost(pricePerKilowattHour: kwhCost)
+        let monthlyFormat: String = String(format: "$%.2f", monthlyCost)
+
+        resultLabel.stringValue = "Total cost per day: " + dailyFormat + " | per month: " + monthlyFormat
         tableView.reloadData()
     }
     
@@ -82,10 +97,12 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             text = String(item.hoursUsedPerDay)
             cellIdentifier = "HoursCellID"
         } else if tableColumn == tableView.tableColumns[3] {
-            text = String(item.dailyCost(pricePerKilowattHour: kwhCost))
+            let dailyCost: Double = item.dailyCost(pricePerKilowattHour: kwhCost)
+            text = String(format: "$%.2f", dailyCost)
             cellIdentifier = "DailyCellID"
         } else if tableColumn == tableView.tableColumns[4] {
-            text = String(item.monthlyCost(pricePerKilowattHour: kwhCost))
+            let monthlyCost: Double = item.monthlyCost(pricePerKilowattHour: kwhCost)
+            text = String(format: "$%.2f", monthlyCost)
             cellIdentifier = "MonthlyCellID"
         }
 
