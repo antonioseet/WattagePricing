@@ -17,9 +17,8 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     
     @IBOutlet weak var tableView: NSTableView!
     
-    
-    
     let manager = ItemManager()
+    var kwhCost = 0.12
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,6 +41,12 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         if(nameField.stringValue == "" || wattField.stringValue == ""){
             return
         }
+        
+        // TODO: Protect from going over 24 hours. For now just default to 24, we'll find a more elegant solution later
+        if (hourField.doubleValue > 24){
+            hourField.doubleValue = 24.0
+        }
+        
         let item = ElectronicItem(name: nameField.stringValue, wattage: wattField.doubleValue, hoursUsedPerDay: hourField.doubleValue)
         manager.add(item: item)
         
@@ -62,36 +67,10 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         return manager.items.count
     }
     
-    func tableView2(_ tableView: NSTableView, objectValueFor tableColumn: NSTableColumn?, row: Int) -> Any? {
-        
-        
-        print("___________")
-        print(tableColumn ?? "no col found?")
-        print(tableColumn?.identifier.rawValue ?? "no col found?")
-        print("_____________")
-        
-        let item = manager.items[row]
-        switch tableColumn?.identifier.rawValue {
-            case "NameColumn":
-                return item.name
-            case "WattageColumn":
-                return item.wattage
-            case "HoursColumn":
-                return item.hoursUsedPerDay
-            default:
-                return nil
-        }
-    }
-    
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         var text: String = ""
         var cellIdentifier: String = ""
-
         let item = manager.items[row]
-        print("___________")
-        print(tableColumn ?? "no col found?")
-        print(tableView.tableColumns[0])
-        print("_____________")
         
         if tableColumn == tableView.tableColumns[0] {
             text = item.name
@@ -102,6 +81,12 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         } else if tableColumn == tableView.tableColumns[2] {
             text = String(item.hoursUsedPerDay)
             cellIdentifier = "HoursCellID"
+        } else if tableColumn == tableView.tableColumns[3] {
+            text = String(item.dailyCost(pricePerKilowattHour: kwhCost))
+            cellIdentifier = "DailyCellID"
+        } else if tableColumn == tableView.tableColumns[4] {
+            text = String(item.monthlyCost(pricePerKilowattHour: kwhCost))
+            cellIdentifier = "MonthlyCellID"
         }
 
         if let cell = tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: cellIdentifier), owner: nil) as? NSTableCellView {
