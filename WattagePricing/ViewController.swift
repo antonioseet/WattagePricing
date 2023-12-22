@@ -10,10 +10,13 @@ import Cocoa
 class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
 
     @IBOutlet weak var resultLabel: NSTextField!
+    @IBOutlet weak var titleLabel: NSTextField!
+    @IBOutlet weak var warningLabel: NSTextField!
     
     @IBOutlet weak var nameField: NSTextField!
     @IBOutlet weak var wattField: NSTextField!
     @IBOutlet weak var hourField: NSTextField!
+    @IBOutlet weak var minutesField: NSTextField!
     
     @IBOutlet weak var tableView: NSTableView!
     
@@ -37,33 +40,52 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
 
     @IBAction func addButtonPressed(_ sender: Any) {
         
-        // TODO: check to see if negative, or zero numbers. return if something wrong, plus make label to warn user.
+        // TODO: check to see if negative, or zero number
         // check that the fields are not blank
         if(nameField.stringValue.isEmpty ||
-           wattField.stringValue.isEmpty ||
-           hourField.stringValue.isEmpty ){
+           wattField.stringValue.isEmpty ){
             return
         }
         
-        // TODO: Protect from going over 24 hours. For now just default to 24, we'll find a more elegant solution later
-        // TODO: Add minutes and protect against 60, and a combination of >24 & >60
+        // TODO: check that there is at least some time on the fields.
+        
+        // Protect from going over 24 hours
         if (hourField.doubleValue > 24.0){
             hourField.doubleValue = 24.0
         }
         
-        let item = ElectronicItem(name: nameField.stringValue, wattage: wattField.doubleValue, hoursUsedPerDay: hourField.doubleValue)
+        if (minutesField.integerValue > 59){
+            minutesField.integerValue = 59
+        }
+        
+        // if we get to a point where the time is invalid, show error to user
+        // returns and does not create an ElectronicItem.
+        if (hourField.doubleValue >= 24 && minutesField.integerValue > 0){
+            warningLabel.stringValue = "Invalid Hours & Minutes"
+            UpdateView()
+            return
+        }
+        
+        let item = ElectronicItem(
+            name: nameField.stringValue,
+            wattage: wattField.doubleValue,
+            hoursUsedPerDay: hourField.doubleValue,
+            minutesPerDay: minutesField.integerValue)
         manager.add(item: item)
         
-        // Clear the fields
+        // Clear the fields and Warning Label.
         nameField.stringValue = ""
         wattField.stringValue = ""
         hourField.stringValue = ""
+        minutesField.stringValue = ""
+        warningLabel.stringValue = ""
         
         UpdateView()
     }
     
     func UpdateView(){
         
+        // updates the running total label based on what the manager has in the collection.
         let dailyCost: Double = manager.totalDailyUsageCost(pricePerKilowattHour: kwhCost)
         let dailyFormat: String = String(format: "$%.2f", dailyCost)
         let monthlyCost: Double = manager.totalmonthlyUsageCost(pricePerKilowattHour: kwhCost)
@@ -94,7 +116,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             text = String(item.wattage)
             cellIdentifier = "WattageCellID"
         } else if tableColumn == tableView.tableColumns[2] {
-            text = String(item.hoursUsedPerDay)
+            text = String(format: "%.1f", item.timeUsedInHours())
             cellIdentifier = "HoursCellID"
         } else if tableColumn == tableView.tableColumns[3] {
             let dailyCost: Double = item.dailyCost(pricePerKilowattHour: kwhCost)
